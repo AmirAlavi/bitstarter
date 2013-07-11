@@ -43,8 +43,23 @@ var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
 
+var cheerioURL = function(result_from_rest_get) {
+    return cheerio.load(result_from_rest_get);
+};
+
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
+};
+
+var checkURL = function(result_from_rest_get, checksfile) {
+    $ = cheerioURL(result_from_rest_get);
+    var checks = loadChecks(checksfile).sort();
+    var out = {};
+    for(var ii in checks) {
+	var present = $(checks[ii]).length > 0;
+	out[checks[ii]] = present;
+    }
+    return out;
 };
 
 var checkHtmlFile = function(htmlfile, checksfile) {
@@ -75,14 +90,8 @@ if(require.main == module) {
 	    if (result instanceof Error) {
 		util.puts('Error: ' + result.message);
 	    } else {
-		$ = cheerio.load(result);
-		var checks = loadChecks(program.checks).sort();
-		var out = {};
-		for(var ii in checks) {
-		    var present = $(checks[ii]).length > 0;
-		    out[checks[ii]] = present;
-		}
-		var outJson = JSON.stringify(out, null, 4);
+		var checkJson = checkURL(result, program.checks);
+		var outJson = JSON.stringify(checkJson, null, 4);
 		console.log(outJson);
 	    }
 	});
