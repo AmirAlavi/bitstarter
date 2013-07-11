@@ -22,6 +22,8 @@ References:
     - https://developer.mozilla.org/en-US/docs/JSON#JSON_in_Firefox_2
 */
 
+var rest = require('restler');
+var util = require('util');
 var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
@@ -66,10 +68,29 @@ if(require.main == module) {
     program
 	.option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
 	.option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+	.option('-u, --url <page_url>', 'Path to url')
 	.parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    if(program.url) {
+	rest.get(program.url).on('complete', function(result) {
+	    if (result instanceof Error) {
+		util.puts('Error: ' + result.message);
+	    } else {
+		$ = cheerio.load(result);
+		var checks = loadChecks(program.checks).sort();
+		var out = {};
+		for(var ii in checks) {
+		    var present = $(checks[ii]).length > 0;
+		    out[checks[ii]] = present;
+		}
+		var outJson = JSON.stringify(out, null, 4);
+		console.log(outJson);
+	    }
+	});
+    } else {
+	var checkJson = checkHtmlFile(program.file, program.checks);
+	var outJson = JSON.stringify(checkJson, null, 4);
+	console.log(outJson);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
